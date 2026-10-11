@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.mp3
+.vscode/
+.idea/
+Thumbs.db
