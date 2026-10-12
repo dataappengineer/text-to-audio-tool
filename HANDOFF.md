@@ -49,7 +49,9 @@
      - `$\rightarrow$`, `->`, `→` $\rightarrow$ `"pointing to"`.
      - `&` $\rightarrow$ `"and"`.
 5. **Speech Synthesis & Playback**:
+   - Explicitly targets the updated Microsoft Edge TTS endpoint (`api.msedgeservices.com`) to bypass the deprecated `speech.platform.bing.com` legacy endpoint.
    - Async call to `edge_tts.Communicate(text, voice, rate)`.
+   - Validates generated audio file size > 0 bytes (removes corrupt 0 KB files and raises an error on network/endpoint failures).
    - Saves to `clipboard_audio.mp3`.
    - Spawns `mpv --no-terminal clipboard_audio.mp3`.
 
@@ -107,7 +109,19 @@ python3 txt2audio.py -cl -p -r -20%
 
 ---
 
-## 7. Future Roadmap & Opportunities for Next Agent
+## 7. Known Upstream Issues & Troubleshooting (0 KB Audio Fix)
+
+### Empty / 0 KB `clipboard_audio.mp3` Incident
+- **Symptom**: Triggering the shortcut produced 0 KB audio files and `mpv` either immediately exited or failed silently.
+- **Root Cause**: Microsoft deprecated/blocked the legacy `speech.platform.bing.com` WebSocket endpoint utilized by standard `edge-tts` (v7.2.8). Connections were closed or rejected, causing `communicate.save()` to write an empty file.
+- **Resolution**:
+  - In `txt2audio.py`, both `edge_tts.constants.WSS_URL` and `edge_tts.communicate.WSS_URL` are explicitly overridden to point to Microsoft's modern endpoint:
+    `wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1?Ocp-Apim-Subscription-Key={TRUSTED_CLIENT_TOKEN}`.
+  - Added a defensive check in `text_to_speech()` verifying file size > 0 bytes. If 0 bytes, the empty file is deleted and a `RuntimeError` is raised with a descriptive error message.
+
+---
+
+## 8. Future Roadmap & Opportunities for Next Agent
 
 1. **Streaming Audio Playback**:
    - Currently, the script awaits the full MP3 before spawning `mpv`.

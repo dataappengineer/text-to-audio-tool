@@ -3,10 +3,20 @@
 import argparse
 import asyncio
 import edge_tts
+import edge_tts.constants
+import edge_tts.communicate
 import os
 import re
 import sys
 import subprocess
+
+# Microsoft deprecated speech.platform.bing.com; redirect to working Edge TTS endpoint
+_NEW_WSS_URL = (
+    "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1"
+    f"?Ocp-Apim-Subscription-Key={edge_tts.constants.TRUSTED_CLIENT_TOKEN}"
+)
+edge_tts.constants.WSS_URL = _NEW_WSS_URL
+edge_tts.communicate.WSS_URL = _NEW_WSS_URL
 
 def clean_text_for_tts(text: str) -> str:
     """
@@ -221,6 +231,10 @@ async def text_to_speech(text, output_file, voice, rate):
         
     communicate = edge_tts.Communicate(text, voice, rate=rate)
     await communicate.save(output_file)
+    if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
+        if os.path.exists(output_file):
+            os.remove(output_file)
+        raise RuntimeError("Generated audio file is 0 bytes. Check TTS service connection.")
     return True
 
 def play_audio(filename):
